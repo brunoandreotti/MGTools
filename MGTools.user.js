@@ -1254,6 +1254,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         pet: '🐾',
         timer: '⏰',
         shop: '🛒',
+            autobuy: '🛒',
         seeds: '🌱',
         values: '💎',
         abilities: '⚡',
@@ -3213,6 +3214,12 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         petAbilityLogs: [],
         seedsToDelete: [],
         autoDeleteEnabled: false,
+        // Auto-buy configuration
+        autoBuy: {
+          enabled: false,
+          selectedSeeds: {}
+          // Format: { 'Carrot': { enabled: true, quantity: 5 }, ... }
+        },
         inventoryValue: 0,
         gardenValue: 0,
         tileValue: 0,
@@ -8291,7 +8298,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       dock.className = 'horizontal';
 
       // Primary tabs
-      const primaryTabs = ['pets', 'abilities', 'seeds', 'values', 'timers', 'rooms', 'shop'];
+      const primaryTabs = ['pets', 'abilities', 'seeds', 'values', 'timers', 'rooms', 'shop', 'autobuy'];
 
       // Tail group tabs (Tools, Settings, Hotkeys, Protect, Notifications, Help)
       const tailTabs = ['tools', 'settings', 'hotkeys', 'protect', 'notifications', 'help'];
@@ -8310,6 +8317,8 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         rooms:
           'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23ffe1f0"/><stop offset="1" stop-color="%23ffb6d9"/></linearGradient></defs><rect x="12" y="12" width="104" height="104" rx="22" fill="url(%23g)" stroke="%236b4b2a" stroke-width="6"/><path d="M28 70l36-26 36 26v30H28z" fill="%23fff" stroke="%236b4b2a" stroke-width="6" stroke-linejoin="round"/><rect x="54" y="74" width="20" height="26" rx="4" fill="%23ffd24d" stroke="%236b4b2a" stroke-width="6"/></svg>',
         shop: 'https://cdn.discordapp.com/emojis/1423011042744729700.webp',
+        autobuy:
+          'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23ffe59e"/><stop offset="1" stop-color="%23ffc75b"/></linearGradient></defs><rect x="12" y="12" width="104" height="104" rx="22" fill="url(%23g)" stroke="%236b4b2a" stroke-width="6"/><path d="M40 50h48l-6 30H46z" fill="%23fff" stroke="%236b4b2a" stroke-width="6" stroke-linejoin="round"/><circle cx="54" cy="88" r="6" fill="%236b4b2a"/><circle cx="74" cy="88" r="6" fill="%236b4b2a"/><path d="M64 36v20M54 46l10 10 10-10" stroke="%2394d36b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         tools:
           'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="%23e5e1ff"/><stop offset="1" stop-color="%23c7c2ff"/></linearGradient></defs><rect x="12" y="12" width="104" height="104" rx="22" fill="url(%23g)" stroke="%236b4b2a" stroke-width="6"/><path d="M46 86l36-36-8-8-36 36-2 14 10-6z" fill="%23fff" stroke="%236b4b2a" stroke-width="6" stroke-linejoin="round"/><rect x="68" y="34" width="14" height="14" rx="3" fill="%23ffd24d" stroke="%236b4b2a" stroke-width="6"/></svg>',
         settings:
@@ -8332,6 +8341,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         timers: 'Timers • Shift+Click for widget',
         rooms: 'Rooms • Shift+Click for widget',
         shop: 'Shop • Alt+B',
+        autobuy: 'Auto Buy Seeds • Automatic seed purchases on restock',
         tools: 'Tools',
         settings: 'Settings • Alt+G',
         hotkeys: 'Hotkeys',
@@ -8363,6 +8373,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             timers: '⏱️',
             rooms: '🏠',
             shop: '🛒',
+            autobuy: '🛒',
             tools: '🔧',
             settings: '⚙️',
             hotkeys: '⌨️',
@@ -8426,6 +8437,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             timers: '⏱️',
             rooms: '🏠',
             shop: '🛒',
+            autobuy: '🛒',
             tools: '🔧',
             settings: '⚙️',
             hotkeys: '⌨️',
@@ -9281,6 +9293,10 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
           popoutContent.innerHTML = getShopTabContent();
           setupShopTabHandlers(popout); // Pass popout context
           break;
+        case 'autobuy':
+          popoutContent.innerHTML = getAutoBuyTabContent();
+          setupAutoBuyTabHandlers(popout); // Pass popout context
+          break;
         case 'values':
           popoutContent.innerHTML = getValuesTabContent();
           setupValuesTabHandlers(popout); // Pass popout context
@@ -9691,6 +9707,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         pets: '🐾 Pet Loadouts',
         abilities: '⚡ Abilities',
         seeds: '🌱 Seeds',
+        autobuy: '🛒 Auto Buy',
         values: '💰 Values',
         timers: '⏰ Timers',
         rooms: '🎮 Rooms',
@@ -9736,6 +9753,9 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
           break;
         case 'shop':
           content = getShopTabContent();
+          break;
+        case 'autobuy':
+          content = getAutoBuyTabContent();
           break;
         case 'values':
           content = getValuesTabContent();
@@ -9893,6 +9913,8 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
                   }
               } else if (tabName === 'seeds' && mainWindow.setupSeedsTabHandlers) {
                   mainWindow.setupSeedsTabHandlers.call(mainWindow, document);
+              } else if (tabName === 'autobuy' && mainWindow.setupAutoBuyTabHandlers) {
+                  mainWindow.setupAutoBuyTabHandlers.call(mainWindow, document);
               } else if (tabName === 'values' && mainWindow.resourceDashboard) {
                   mainWindow.resourceDashboard.setupDashboardHandlers(document);
               } else if (tabName === 'settings' && mainWindow.setupSettingsTabHandlers) {
@@ -9957,6 +9979,9 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             case 'seeds':
               setupSeedsTabHandlers(popoutWindow.document);
               break;
+            case 'autobuy':
+              setupAutoBuyTabHandlers(popoutWindow.document);
+              break;
             case 'shop':
               setupShopTabHandlers(popoutWindow.document);
               break;
@@ -9995,6 +10020,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
     window.MGA_Internal.setupPetPopoutHandlers = setupPetPopoutHandlers;
     window.MGA_Internal.getAbilitiesTabContent = getAbilitiesTabContent;
     window.MGA_Internal.getSeedsTabContent = getSeedsTabContent;
+    window.MGA_Internal.getAutoBuyTabContent = getAutoBuyTabContent;
     window.MGA_Internal.getValuesTabContent = getValuesTabContent;
     window.MGA_Internal.getTimersTabContent = getTimersTabContent;
     window.MGA_Internal.getToolsTabContent = getToolsTabContent;
@@ -10004,6 +10030,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
     window.MGA_Internal.updateAbilityLogDisplay = updateAbilityLogDisplay;
     window.MGA_Internal.setupPetsTabHandlers = setupPetsTabHandlers;
     window.MGA_Internal.setupSeedsTabHandlers = setupSeedsTabHandlers;
+    window.MGA_Internal.setupAutoBuyTabHandlers = setupAutoBuyTabHandlers;
     window.MGA_Internal.setupSettingsTabHandlers = setupSettingsTabHandlers;
     window.MGA_Internal.setupToolsTabHandlers = setupToolsTabHandlers;
     window.MGA_Internal.setupRoomJoinButtons = setupRoomJoinButtons;
@@ -10064,6 +10091,9 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             break;
           case 'seeds':
             setupSeedsTabHandlers(overlay);
+            break;
+          case 'autobuy':
+            setupAutoBuyTabHandlers(overlay);
             break;
           case 'shop':
             setupShopTabHandlers(overlay);
@@ -10420,6 +10450,9 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         case 'shop':
           content = getShopTabContent();
           break;
+        case 'autobuy':
+          content = getAutoBuyTabContent();
+          break;
         case 'values':
           content = getValuesTabContent();
           break;
@@ -10492,6 +10525,9 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
               break;
             case 'seeds':
               setupSeedsTabHandlers(parentOverlay);
+              break;
+            case 'autobuy':
+              setupAutoBuyTabHandlers(parentOverlay);
               break;
             case 'shop':
               setupShopTabHandlers(parentOverlay);
@@ -11380,6 +11416,9 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             case 'seeds':
               setupSeedsTabHandlers(overlay);
               break;
+            case 'autobuy':
+              setupAutoBuyTabHandlers(overlay);
+              break;
             case 'settings':
               setupSettingsTabHandlers(overlay);
               break;
@@ -11622,6 +11661,10 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         case 'seeds':
           contentEl.innerHTML = getSeedsTabContent();
           setupSeedsTabHandlers(contentEl);
+          break;
+        case 'autobuy':
+          contentEl.innerHTML = getAutoBuyTabContent();
+          setupAutoBuyTabHandlers(contentEl);
           break;
         case 'shop':
           contentEl.innerHTML = getShopTabContent();
@@ -12414,6 +12457,283 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         htmlPreview: html.substring(0, 200)
       });
       return html;
+    }
+
+    // ==================== AUTO-BUY SYSTEM ====================
+    
+    // Auto-buy state
+    let autoBuyProcessing = false;
+    let autoBuyQueue = [];
+    
+    // Load auto-buy settings from storage
+    function loadAutoBuySettings() {
+      if (!UnifiedState.data.autoBuy) {
+        UnifiedState.data.autoBuy = {
+          enabled: false,
+          selectedSeeds: {}
+        };
+      }
+      return UnifiedState.data.autoBuy;
+    }
+    
+    // Save auto-buy settings to storage
+    function saveAutoBuySettings() {
+      MGA_save('MGA_data', UnifiedState.data);
+      productionLog('💾 [AUTO-BUY] Settings saved', UnifiedState.data.autoBuy);
+    }
+    
+    // Perform single seed purchase
+    async function performSeedPurchase(seedId, quantity) {
+      return new Promise((resolve) => {
+        const conn = targetWindow.MagicCircle_RoomConnection;
+        if (!conn?.sendMessage) {
+          productionLog('❌ [AUTO-BUY] Connection not available');
+          resolve(false);
+          return;
+        }
+        
+        try {
+          for (let i = 0; i < quantity; i++) {
+            conn.sendMessage({
+              scopePath: ['Room', 'Quinoa'],
+              type: 'PurchaseSeed',
+              species: seedId
+            });
+          }
+          productionLog(`✅ [AUTO-BUY] Purchased ${quantity}x ${seedId}`);
+          resolve(true);
+        } catch (e) {
+          console.error('[AUTO-BUY] Purchase error:', e);
+          resolve(false);
+        }
+      });
+    }
+    
+    // Process purchase queue
+    async function processPurchaseQueue() {
+      if (autoBuyProcessing || autoBuyQueue.length === 0) return;
+      
+      autoBuyProcessing = true;
+      updateAutoBuyStatus('🛒 Comprando sementes...');
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      while (autoBuyQueue.length > 0) {
+        const item = autoBuyQueue.shift();
+        const success = await performSeedPurchase(item.seedId, item.quantity);
+        if (success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+        // Small delay between purchases
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      autoBuyProcessing = false;
+      
+      // Show notification
+      const volume = UnifiedState.data.settings.notifications?.volume || 0.3;
+      playShopNotificationSound(volume);
+      
+      if (successCount > 0) {
+        showNotificationToast(`✓ Auto-Compra: ${successCount} tipo(s) de sementes compradas com sucesso!`, 'success');
+        updateAutoBuyStatus('✓ Compra concluída!');
+      } else {
+        showNotificationToast(`❌ Auto-Compra: Falha ao comprar sementes`, 'error');
+        updateAutoBuyStatus('✓ Auto-compra ativa - Aguardando restock...');
+      }
+      
+      // Reset status after a few seconds
+      setTimeout(() => {
+        const settings = loadAutoBuySettings();
+        if (settings.enabled) {
+          updateAutoBuyStatus('✓ Auto-compra ativa - Aguardando restock...');
+        }
+      }, 3000);
+    }
+    
+    // Handle shop restock event
+    function onShopRestock() {
+      const settings = loadAutoBuySettings();
+      if (!settings.enabled) return;
+      
+      productionLog('🔄 [AUTO-BUY] Shop restocked, checking selected seeds...');
+      
+      // Build purchase queue
+      autoBuyQueue = [];
+      for (const [seedId, config] of Object.entries(settings.selectedSeeds)) {
+        if (config.enabled && config.quantity > 0) {
+          autoBuyQueue.push({ seedId, quantity: config.quantity });
+        }
+      }
+      
+      if (autoBuyQueue.length > 0) {
+        productionLog(`🛒 [AUTO-BUY] Queued ${autoBuyQueue.length} seed types for purchase`);
+        processPurchaseQueue();
+      }
+    }
+    
+    // Toggle auto-buy on/off
+    function toggleAutoBuy(enabled) {
+      const settings = loadAutoBuySettings();
+      settings.enabled = enabled;
+      saveAutoBuySettings();
+      
+      if (enabled) {
+        updateAutoBuyStatus('✓ Auto-compra ativa - Aguardando restock...');
+        showNotificationToast('✓ Auto-compra ativada', 'success');
+      } else {
+        updateAutoBuyStatus('⏸ Auto-compra desativada');
+        showNotificationToast('⏸ Auto-compra desativada', 'info');
+      }
+    }
+    
+    // Manual buy now
+    function buyNow() {
+      const settings = loadAutoBuySettings();
+      
+      // Build purchase queue
+      autoBuyQueue = [];
+      for (const [seedId, config] of Object.entries(settings.selectedSeeds)) {
+        if (config.enabled && config.quantity > 0) {
+          autoBuyQueue.push({ seedId, quantity: config.quantity });
+        }
+      }
+      
+      if (autoBuyQueue.length === 0) {
+        showNotificationToast('⚠️ Nenhuma semente selecionada para compra', 'warning');
+        return;
+      }
+      
+      productionLog(`🛒 [AUTO-BUY] Manual purchase triggered for ${autoBuyQueue.length} seed types`);
+      processPurchaseQueue();
+    }
+    
+    // Update status display
+    function updateAutoBuyStatus(message) {
+      const statusEl = targetDocument.getElementById('autobuy-status');
+      if (statusEl) {
+        statusEl.textContent = message;
+      }
+    }
+    
+    // Get auto-buy tab content
+    function getAutoBuyTabContent() {
+      const settings = loadAutoBuySettings();
+      const seedGroups = [
+        { name: 'Common', color: '#fff', seeds: ['Carrot', 'Strawberry', 'Aloe'] },
+        { name: 'Uncommon', color: '#0f0', seeds: ['Apple', 'OrangeTulip', 'Tomato', 'Blueberry'] },
+        { name: 'Rare', color: '#0af', seeds: ['Daffodil', 'Corn', 'Watermelon', 'Pumpkin', 'Delphinium', 'Squash'] },
+        { name: 'Legendary', color: '#ff0', seeds: ['Echeveria', 'Coconut', 'Banana', 'Lily', 'BurrosTail'] },
+        { name: 'Mythical', color: '#a0f', seeds: ['Mushroom', 'Cactus', 'Bamboo', 'Grape'] },
+        { name: 'Divine', color: 'orange', seeds: ['Sunflower', 'Pepper', 'Lemon', 'PassionFruit', 'DragonFruit', 'Lychee'] },
+        { name: 'Celestial', color: '#ff69b4', seeds: ['Starweaver', 'Moonbinder', 'Dawnbinder'] }
+      ];
+      
+      const statusText = settings.enabled ? '✓ Auto-compra ativa - Aguardando restock...' : '⏸ Auto-compra desativada';
+      
+      let html = `
+        <div class="mga-section">
+          <div class="mga-section-title">Configuração Auto-Compra</div>
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <label class="mga-checkbox-group">
+              <input type="checkbox" class="mga-checkbox" id="autobuy-toggle" ${settings.enabled ? 'checked' : ''}>
+              <span class="mga-label">Auto-compra no Restock</span>
+            </label>
+            <button class="mga-btn" id="buy-now-btn" style="background: #059669;">Comprar Agora</button>
+          </div>
+          <div id="autobuy-status" style="padding: 8px; background: rgba(5, 150, 105, 0.2); border-radius: 4px; font-size: 13px;">
+            ${statusText}
+          </div>
+        </div>
+      `;
+      
+      seedGroups.forEach(group => {
+        html += `
+          <div class="mga-section">
+            <div class="mga-section-title" style="color: ${group.color}">${group.name}</div>
+            <div class="mga-grid">
+        `;
+        
+        group.seeds.forEach(seed => {
+          const seedId = seed === 'OrangeTulip' ? 'OrangeTulip' : seed;
+          const config = settings.selectedSeeds[seedId] || { enabled: false, quantity: 1 };
+          const checked = config.enabled ? 'checked' : '';
+          
+          html += `
+            <div style="display: flex; align-items: center; gap: 8px; padding: 6px;">
+              <label class="mga-checkbox-group" style="flex: 1;">
+                <input type="checkbox" class="mga-checkbox autobuy-seed-checkbox" data-seed="${seedId}" ${checked}>
+                <span class="mga-label" style="color: ${group.color}">${seed}</span>
+              </label>
+              <input type="number" class="autobuy-quantity-input" data-seed="${seedId}" 
+                     value="${config.quantity}" min="1" max="999" 
+                     style="width: 60px; padding: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; color: white; text-align: center;">
+            </div>
+          `;
+        });
+        
+        html += '</div></div>';
+      });
+      
+      return html;
+    }
+    
+    // Setup auto-buy tab handlers
+    function setupAutoBuyTabHandlers(context) {
+      const doc = context || targetDocument;
+      
+      // Toggle auto-buy
+      const toggleCheckbox = doc.getElementById('autobuy-toggle');
+      if (toggleCheckbox) {
+        toggleCheckbox.addEventListener('change', (e) => {
+          toggleAutoBuy(e.target.checked);
+        });
+      }
+      
+      // Buy now button
+      const buyNowBtn = doc.getElementById('buy-now-btn');
+      if (buyNowBtn) {
+        buyNowBtn.addEventListener('click', () => {
+          buyNow();
+        });
+      }
+      
+      // Seed checkboxes
+      const seedCheckboxes = doc.querySelectorAll('.autobuy-seed-checkbox');
+      seedCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+          const seedId = e.target.dataset.seed;
+          const settings = loadAutoBuySettings();
+          
+          if (!settings.selectedSeeds[seedId]) {
+            settings.selectedSeeds[seedId] = { enabled: false, quantity: 1 };
+          }
+          
+          settings.selectedSeeds[seedId].enabled = e.target.checked;
+          saveAutoBuySettings();
+        });
+      });
+      
+      // Quantity inputs
+      const quantityInputs = doc.querySelectorAll('.autobuy-quantity-input');
+      quantityInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+          const seedId = e.target.dataset.seed;
+          const quantity = parseInt(e.target.value) || 1;
+          const settings = loadAutoBuySettings();
+          
+          if (!settings.selectedSeeds[seedId]) {
+            settings.selectedSeeds[seedId] = { enabled: false, quantity: 1 };
+          }
+          
+          settings.selectedSeeds[seedId].quantity = Math.max(1, Math.min(999, quantity));
+          e.target.value = settings.selectedSeeds[seedId].quantity;
+          saveAutoBuySettings();
+        });
+      });
     }
 
     // ==================== DUAL SHOP WINDOWS ====================
@@ -16542,6 +16862,8 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
                 setTimeout(() => {
                   checkForWatchedItems();
                   refreshAllShopWindows();
+                  // Trigger auto-buy if enabled
+                  onShopRestock();
                 }, 0);
               }
               lastSeedRestock = currentRestock;

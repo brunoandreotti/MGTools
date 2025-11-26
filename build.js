@@ -14,7 +14,7 @@ const path = require('path');
 // Paths
 const OUTDIR = path.join(process.cwd(), 'dist');
 const OUT_FILE = path.join(OUTDIR, 'mgtools.user.js');
-const MONOLITH_FILE = path.join(process.cwd(), 'mgtools.user.js');
+const MONOLITH_FILE = path.join(process.cwd(), 'MGTools.user.js');
 const SRC_INDEX = path.join(process.cwd(), 'src', 'index.js');
 
 // Ensure output directory exists
