@@ -13717,6 +13717,11 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
               // Reset local purchase tracking for this shop type
               resetLocalPurchases(type);
 
+              // Trigger auto-buy if enabled (only for seed shop)
+              if (type === 'seed') {
+                onShopRestock();
+              }
+
               // Short delay to ensure stock data is stable
               setTimeout(() => {
                 renderItems(sortCheckbox.checked, showAvailableCheckbox.checked);
