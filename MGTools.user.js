@@ -6933,7 +6933,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         function (e) {
           // Check if clicked element looks like a feed button
           const elem = e.target;
-          if (elem && (elem.textContent?.includes('Feed') || elem.className?.includes('feed'))) {
+          if (elem && (elem.textContent?.includes('Feed') || elem.classList?.contains('feed'))) {
             console.log('[NATIVE-FEED] Possible native feed button clicked:', elem);
 
             // Set flag to capture next FeedPet message
@@ -11441,7 +11441,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       const overlay = UnifiedState.data.popouts.overlays.get(tabName);
       if (overlay && document.contains(overlay)) {
         // NEW: Handle pure content overlays (no .mga-overlay-content wrapper)
-        if (overlay.className.includes('mga-overlay-content-only')) {
+        if (overlay.classList?.contains('mga-overlay-content-only')) {
           updatePureOverlayContent(overlay, tabName);
           productionLog(`🔄 Refreshed pure overlay content for ${tabName} tab`);
         } else {
@@ -11963,7 +11963,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
               // Update all overlays
               UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
                 if (overlay && document.contains(overlay) && tabName === 'pets') {
-                  if (overlay.className.includes('mga-overlay-content-only')) {
+                  if (overlay.classList?.contains('mga-overlay-content-only')) {
                     updatePureOverlayContent(overlay, tabName);
                   }
                 }
@@ -12478,7 +12478,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
 
     // Save auto-buy settings to storage
     function saveAutoBuySettings() {
-      MGA_save('MGA_data', UnifiedState.data);
+      MGA_saveJSON('MGA_data', UnifiedState.data);
       productionLog('💾 [AUTO-BUY] Settings saved', UnifiedState.data.autoBuy);
     }
 
@@ -18882,7 +18882,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         // Update overlays
         UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
           if (overlay && document.contains(overlay) && tabName === 'pets') {
-            if (overlay.className.includes('mga-overlay-content-only')) {
+            if (overlay.classList?.contains('mga-overlay-content-only')) {
               updatePureOverlayContent(overlay, tabName);
             }
           }
@@ -19644,7 +19644,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             refreshSeparateWindowPopouts('pets');
             UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
               if (overlay && document.contains(overlay) && tabName === 'pets') {
-                if (overlay.className.includes('mga-overlay-content-only')) {
+                if (overlay.classList?.contains('mga-overlay-content-only')) {
                   updatePureOverlayContent(overlay, tabName);
                 }
               }
@@ -19683,7 +19683,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             refreshSeparateWindowPopouts('pets');
             UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
               if (overlay && document.contains(overlay) && tabName === 'pets') {
-                if (overlay.className.includes('mga-overlay-content-only')) {
+                if (overlay.classList?.contains('mga-overlay-content-only')) {
                   updatePureOverlayContent(overlay, tabName);
                 }
               }
@@ -19723,7 +19723,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             // Update all pet overlays (they need full updates for popouts)
             UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
               if (overlay && document.contains(overlay) && tabName === 'pets') {
-                if (overlay.className.includes('mga-overlay-content-only')) {
+                if (overlay.classList?.contains('mga-overlay-content-only')) {
                   updatePureOverlayContent(overlay, tabName);
                   debugLog('OVERLAY_LIFECYCLE', 'Updated pure pets overlay after saving preset');
                 }
@@ -19761,7 +19761,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             // Update all pet overlays
             UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
               if (overlay && document.contains(overlay) && tabName === 'pets') {
-                if (overlay.className.includes('mga-overlay-content-only')) {
+                if (overlay.classList?.contains('mga-overlay-content-only')) {
                   updatePureOverlayContent(overlay, tabName);
                   debugLog('OVERLAY_LIFECYCLE', 'Updated pure pets overlay after removing preset');
                 }
@@ -19833,7 +19833,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
               refreshSeparateWindowPopouts('pets');
               UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
                 if (overlay && document.contains(overlay) && tabName === 'pets') {
-                  if (overlay.className.includes('mga-overlay-content-only')) {
+                  if (overlay.classList?.contains('mga-overlay-content-only')) {
                     updatePureOverlayContent(overlay, tabName);
                   }
                 }
@@ -25736,7 +25736,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       targetDocument.createElement = function (tagName) {
         const element = originalCreateElement.call(document, tagName);
 
-        if (tagName.toLowerCase() === 'dialog' || (element.className && element.className.includes('modal'))) {
+        if (tagName.toLowerCase() === 'dialog' || (element.className && typeof element.className === 'string' && element.className.includes('modal'))) {
           if (activeModalCount >= modalSettings.queueLimit) {
             debugLog('MODAL_SPAM', 'Modal blocked due to queue limit');
             return element; // Return but don't increment count
@@ -26578,6 +26578,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
               // Check if changes are related to inventory or game state
               if (
                 mutation.target.className &&
+                typeof mutation.target.className === 'string' &&
                 (mutation.target.className.includes('inventory') ||
                   mutation.target.className.includes('garden') ||
                   mutation.target.className.includes('crop'))
@@ -26748,7 +26749,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         // Update all overlay windows showing values tab
         UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
           if (overlay && document.contains(overlay) && tabName === 'values') {
-            if (overlay.className.includes('mga-overlay-content-only')) {
+            if (overlay.classList?.contains('mga-overlay-content-only')) {
               updatePureOverlayContent(overlay, tabName);
               debugLog('VALUE_MANAGER', 'Updated pure values overlay');
             } else {
@@ -26837,7 +26838,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       // Refresh any open Values overlays
       UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
         if (overlay && document.contains(overlay) && tabName === 'values') {
-          if (overlay.className.includes('mga-overlay-content-only')) {
+          if (overlay.classList?.contains('mga-overlay-content-only')) {
             updatePureOverlayContent(overlay, tabName);
           }
         }
@@ -26923,7 +26924,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         // Update all seed overlays
         UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
           if (overlay && document.contains(overlay) && tabName === 'seeds') {
-            if (overlay.className.includes('mga-overlay-content-only')) {
+            if (overlay.classList?.contains('mga-overlay-content-only')) {
               updatePureOverlayContent(overlay, tabName);
               // Also clear checkboxes in overlay
               overlay.querySelectorAll('.seed-checkbox').forEach(cb => (cb.checked = false));
@@ -32830,7 +32831,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
           // Update all overlay windows showing abilities tab
           UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
             if (overlay && document.contains(overlay) && tabName === 'abilities') {
-              if (overlay.className.includes('mga-overlay-content-only')) {
+              if (overlay.classList?.contains('mga-overlay-content-only')) {
                 // NEW: Pure content overlays - refresh entire overlay
                 updatePureOverlayContent(overlay, tabName);
                 debugLog('OVERLAY_LIFECYCLE', 'Updated pure abilities overlay after test ability');
@@ -32888,7 +32889,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
               refreshSeparateWindowPopouts('pets');
               UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
                 if (overlay && document.contains(overlay) && tabName === 'pets') {
-                  if (overlay.className.includes('mga-overlay-content-only')) {
+                  if (overlay.classList?.contains('mga-overlay-content-only')) {
                     updatePureOverlayContent(overlay, tabName);
                   }
                 }
@@ -33025,7 +33026,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             // Also update ability overlays
             UnifiedState.data.popouts.overlays.forEach((overlay, tabName) => {
               if (overlay && document.contains(overlay) && tabName === 'abilities') {
-                if (overlay.className.includes('mga-overlay-content-only')) {
+                if (overlay.classList?.contains('mga-overlay-content-only')) {
                   // NEW: Pure content overlays - refresh entire overlay
                   updatePureOverlayContent(overlay, tabName);
                   debugLog('OVERLAY_LIFECYCLE', 'Updated pure abilities overlay after clearing logs');
