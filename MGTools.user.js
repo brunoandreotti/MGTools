@@ -12556,8 +12556,18 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
     
     // Handle shop restock event
     function onShopRestock() {
+      productionLog('🔄 [AUTO-BUY] onShopRestock() called');
+      
       const settings = loadAutoBuySettings();
-      if (!settings.enabled) return;
+      productionLog('[AUTO-BUY] Current settings:', {
+        enabled: settings.enabled,
+        selectedSeedsCount: Object.keys(settings.selectedSeeds || {}).length
+      });
+      
+      if (!settings.enabled) {
+        productionLog('[AUTO-BUY] Auto-buy is disabled, skipping');
+        return;
+      }
       
       productionLog('🔄 [AUTO-BUY] Shop restocked, checking selected seeds...');
       
@@ -12566,12 +12576,15 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       for (const [seedId, config] of Object.entries(settings.selectedSeeds)) {
         if (config.enabled && config.quantity > 0) {
           autoBuyQueue.push({ seedId, quantity: config.quantity });
+          productionLog(`[AUTO-BUY] Queued: ${seedId} x${config.quantity}`);
         }
       }
       
       if (autoBuyQueue.length > 0) {
         productionLog(`🛒 [AUTO-BUY] Queued ${autoBuyQueue.length} seed types for purchase`);
         processPurchaseQueue();
+      } else {
+        productionLog('[AUTO-BUY] No seeds selected for purchase');
       }
     }
     
@@ -12735,6 +12748,94 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         });
       });
     }
+
+    // ==================== GLOBAL AUTO-BUY API ====================
+    // Expose auto-buy functions globally for testability and external access
+    targetWindow.autoBuy = {
+      // Load settings from UnifiedState
+      loadSettings: function() {
+        try {
+          const settings = loadAutoBuySettings();
+          productionLog('[AUTO-BUY-API] Settings loaded:', settings);
+          return settings;
+        } catch (e) {
+          console.error('[AUTO-BUY-API] Error loading settings:', e);
+          return { enabled: false, selectedSeeds: {} };
+        }
+      },
+
+      // Save settings to UnifiedState
+      saveSettings: function(settings) {
+        try {
+          if (settings) {
+            UnifiedState.data.autoBuy = settings;
+            saveAutoBuySettings();
+            productionLog('[AUTO-BUY-API] Settings saved:', settings);
+            return true;
+          }
+          return false;
+        } catch (e) {
+          console.error('[AUTO-BUY-API] Error saving settings:', e);
+          return false;
+        }
+      },
+
+      // Execute manual purchase
+      buyNow: function() {
+        productionLog('[AUTO-BUY-API] Manual buy triggered');
+        buyNow();
+      },
+
+      // Trigger auto-buy on restock (called by restock detection system)
+      triggerOnRestock: function() {
+        const settings = loadAutoBuySettings();
+        
+        productionLog('[AUTO-BUY-API] Restock trigger called', {
+          enabled: settings.enabled,
+          selectedSeeds: settings.selectedSeeds
+        });
+        
+        // Verify auto-buy is enabled
+        if (!settings || !settings.enabled) {
+          productionLog('[AUTO-BUY-API] Auto-buy disabled, ignoring restock');
+          return;
+        }
+        
+        // Verify seeds are selected
+        const selectedSeeds = Object.entries(settings.selectedSeeds || {})
+          .filter(([_, config]) => config.enabled && config.quantity > 0);
+          
+        if (selectedSeeds.length === 0) {
+          productionLog('[AUTO-BUY-API] No seeds selected, ignoring restock');
+          return;
+        }
+        
+        productionLog('[AUTO-BUY-API] Executing auto-buy after restock...', selectedSeeds);
+        
+        // Execute the existing onShopRestock function
+        onShopRestock();
+      },
+
+      // Get current auto-buy status
+      getStatus: function() {
+        const settings = loadAutoBuySettings();
+        return {
+          enabled: settings.enabled,
+          selectedSeedsCount: Object.keys(settings.selectedSeeds || {}).length,
+          processing: autoBuyProcessing,
+          queueLength: autoBuyQueue.length
+        };
+      }
+    };
+
+    // Log initialization for debugging
+    productionLog('[AUTO-BUY-API] Global API initialized', {
+      loadSettings: typeof targetWindow.autoBuy.loadSettings,
+      saveSettings: typeof targetWindow.autoBuy.saveSettings,
+      buyNow: typeof targetWindow.autoBuy.buyNow,
+      triggerOnRestock: typeof targetWindow.autoBuy.triggerOnRestock,
+      getStatus: typeof targetWindow.autoBuy.getStatus
+    });
 
     // ==================== DUAL SHOP WINDOWS ====================
     let shopWindowsOpen = false;
@@ -13719,6 +13820,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
 
               // Trigger auto-buy if enabled (only for seed shop)
               if (type === 'seed') {
+                productionLog('[AUTO-BUY-HOOK] Restock detected for seed shop, triggering auto-buy...');
                 onShopRestock();
               }
 
@@ -16868,6 +16970,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
                   checkForWatchedItems();
                   refreshAllShopWindows();
                   // Trigger auto-buy if enabled
+                  productionLog('[AUTO-BUY-HOOK] Legacy restock path detected, triggering auto-buy...');
                   onShopRestock();
                 }, 0);
               }
