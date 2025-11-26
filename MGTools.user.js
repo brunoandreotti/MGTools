@@ -12686,7 +12686,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       const doc = context || targetDocument;
       
       // Toggle auto-buy
-      const toggleCheckbox = doc.getElementById('autobuy-toggle');
+      const toggleCheckbox = doc.querySelector('#autobuy-toggle');
       if (toggleCheckbox) {
         toggleCheckbox.addEventListener('change', (e) => {
           toggleAutoBuy(e.target.checked);
@@ -12694,7 +12694,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       }
       
       // Buy now button
-      const buyNowBtn = doc.getElementById('buy-now-btn');
+      const buyNowBtn = doc.querySelector('#buy-now-btn');
       if (buyNowBtn) {
         buyNowBtn.addEventListener('click', () => {
           buyNow();
