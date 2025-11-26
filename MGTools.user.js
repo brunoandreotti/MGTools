@@ -12470,8 +12470,13 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       if (!UnifiedState.data.autoBuy) {
         UnifiedState.data.autoBuy = {
           enabled: false,
+          playSound: true,
           selectedSeeds: {}
         };
+      }
+      // Ensure playSound exists for backward compatibility
+      if (UnifiedState.data.autoBuy.playSound === undefined) {
+        UnifiedState.data.autoBuy.playSound = true;
       }
       return UnifiedState.data.autoBuy;
     }
@@ -12534,8 +12539,11 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       autoBuyProcessing = false;
 
       // Show notification
-      const volume = UnifiedState.data.settings.notifications?.volume || 0.3;
-      playShopNotificationSound(volume);
+      const settings = loadAutoBuySettings();
+      if (settings.playSound) {
+        const volume = UnifiedState.data.settings.notifications?.volume || 0.3;
+        playShopNotificationSound(volume);
+      }
 
       if (successCount > 0) {
         showNotificationToast(`✓ Auto-Compra: ${successCount} tipo(s) de sementes compradas com sucesso!`, 'success');
@@ -12657,6 +12665,12 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
             </label>
             <button class="mga-btn" id="buy-now-btn" style="background: #059669;">Comprar Agora</button>
           </div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <label class="mga-checkbox-group">
+              <input type="checkbox" class="mga-checkbox" id="autobuy-sound-toggle" ${settings.playSound ? 'checked' : ''}>
+              <span class="mga-label">🔊 Tocar som ao comprar</span>
+            </label>
+          </div>
           <div id="autobuy-status" style="padding: 8px; background: rgba(5, 150, 105, 0.2); border-radius: 4px; font-size: 13px;">
             ${statusText}
           </div>
@@ -12703,6 +12717,21 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       if (toggleCheckbox) {
         toggleCheckbox.addEventListener('change', e => {
           toggleAutoBuy(e.target.checked);
+        });
+      }
+
+      // Toggle sound
+      const soundToggle = doc.querySelector('#autobuy-sound-toggle');
+      if (soundToggle) {
+        soundToggle.addEventListener('change', e => {
+          const settings = loadAutoBuySettings();
+          settings.playSound = e.target.checked;
+          saveAutoBuySettings();
+          productionLog('[AUTO-BUY] Som ao comprar:', settings.playSound ? 'ATIVADO' : 'DESATIVADO');
+          showNotificationToast(
+            settings.playSound ? '🔊 Som ativado' : '🔇 Som desativado',
+            'info'
+          );
         });
       }
 
@@ -12825,6 +12854,21 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
           processing: autoBuyProcessing,
           queueLength: autoBuyQueue.length
         };
+      },
+
+      // Set sound enabled/disabled
+      setSoundEnabled: function(enabled) {
+        const settings = loadAutoBuySettings();
+        settings.playSound = enabled;
+        saveAutoBuySettings();
+        productionLog('[AUTO-BUY-API] Sound', enabled ? 'ENABLED' : 'DISABLED');
+        return true;
+      },
+
+      // Check if sound is enabled
+      isSoundEnabled: function() {
+        const settings = loadAutoBuySettings();
+        return settings.playSound;
       }
     };
 
@@ -12834,7 +12878,9 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       saveSettings: typeof targetWindow.autoBuy.saveSettings,
       buyNow: typeof targetWindow.autoBuy.buyNow,
       triggerOnRestock: typeof targetWindow.autoBuy.triggerOnRestock,
-      getStatus: typeof targetWindow.autoBuy.getStatus
+      getStatus: typeof targetWindow.autoBuy.getStatus,
+      setSoundEnabled: typeof targetWindow.autoBuy.setSoundEnabled,
+      isSoundEnabled: typeof targetWindow.autoBuy.isSoundEnabled
     });
 
     // ==================== DUAL SHOP WINDOWS ====================
