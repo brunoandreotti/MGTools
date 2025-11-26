@@ -12540,7 +12540,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
 
       // Show notification
       const settings = loadAutoBuySettings();
-      if (settings.playSound !== false) {
+      if (settings.playSound) {
         const volume = UnifiedState.data.settings.notifications?.volume || 0.3;
         playShopNotificationSound(volume);
       }
@@ -12667,7 +12667,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
           </div>
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
             <label class="mga-checkbox-group">
-              <input type="checkbox" class="mga-checkbox" id="autobuy-sound-toggle" ${settings.playSound !== false ? 'checked' : ''}>
+              <input type="checkbox" class="mga-checkbox" id="autobuy-sound-toggle" ${settings.playSound ? 'checked' : ''}>
               <span class="mga-label">🔊 Tocar som ao comprar</span>
             </label>
           </div>
@@ -12868,7 +12868,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       // Check if sound is enabled
       isSoundEnabled: function() {
         const settings = loadAutoBuySettings();
-        return settings.playSound !== false;
+        return settings.playSound;
       }
     };
 
