@@ -3217,8 +3217,10 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         // Auto-buy configuration
         autoBuy: {
           enabled: false,
-          selectedSeeds: {}
+          selectedSeeds: {},
+          selectedEggs: {}
           // Format: { 'Carrot': { enabled: true, quantity: 5 }, ... }
+          // Eggs Format: { 'CommonEgg': { enabled: true, quantity: 999 }, ... }
         },
         inventoryValue: 0,
         gardenValue: 0,
@@ -12465,18 +12467,36 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
     let autoBuyProcessing = false;
     let autoBuyQueue = [];
 
+    // Default quantity for egg auto-buy
+    const DEFAULT_EGG_QUANTITY = 999;
+
+    // Available eggs for auto-buy
+    const AVAILABLE_EGGS = [
+      { id: 'CommonEgg', name: 'Common Egg', emoji: '🥚', color: '#fff' },
+      { id: 'UncommonEgg', name: 'Uncommon Egg', emoji: '🥚', color: '#0f0' },
+      { id: 'RareEgg', name: 'Rare Egg', emoji: '🥚', color: '#0af' },
+      { id: 'EpicEgg', name: 'Epic Egg', emoji: '🥚', color: '#a0f' },
+      { id: 'LegendaryEgg', name: 'Legendary Egg', emoji: '🥚', color: '#ff0' },
+      { id: 'MythicalEgg', name: 'Mythical Egg', emoji: '🥚', color: '#f0a' }
+    ];
+
     // Load auto-buy settings from storage
     function loadAutoBuySettings() {
       if (!UnifiedState.data.autoBuy) {
         UnifiedState.data.autoBuy = {
           enabled: false,
           playSound: true,
-          selectedSeeds: {}
+          selectedSeeds: {},
+          selectedEggs: {}
         };
       }
       // Ensure playSound exists for backward compatibility
       if (UnifiedState.data.autoBuy.playSound === undefined) {
         UnifiedState.data.autoBuy.playSound = true;
+      }
+      // Ensure selectedEggs exists for backward compatibility (migration)
+      if (!UnifiedState.data.autoBuy.selectedEggs) {
+        UnifiedState.data.autoBuy.selectedEggs = {};
       }
       return UnifiedState.data.autoBuy;
     }
@@ -12514,19 +12534,55 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       });
     }
 
+    // Perform single egg purchase
+    async function performEggPurchase(eggId, quantity) {
+      return new Promise(resolve => {
+        const conn = targetWindow.MagicCircle_RoomConnection;
+        if (!conn?.sendMessage) {
+          productionLog('❌ [AUTO-BUY] Connection not available');
+          resolve(false);
+          return;
+        }
+
+        try {
+          for (let i = 0; i < quantity; i++) {
+            conn.sendMessage({
+              scopePath: ['Room', 'Quinoa'],
+              type: 'PurchaseEgg',
+              eggId: eggId
+            });
+          }
+          productionLog(`✅ [AUTO-BUY] Purchased ${quantity}x ${eggId}`);
+          resolve(true);
+        } catch (e) {
+          console.error('[AUTO-BUY] Egg purchase error:', e);
+          resolve(false);
+        }
+      });
+    }
+
     // Process purchase queue
     async function processPurchaseQueue() {
       if (autoBuyProcessing || autoBuyQueue.length === 0) return;
 
       autoBuyProcessing = true;
-      updateAutoBuyStatus('🛒 Comprando sementes...');
+      updateAutoBuyStatus('🛒 Comprando itens...');
 
       let successCount = 0;
       let failCount = 0;
 
       while (autoBuyQueue.length > 0) {
         const item = autoBuyQueue.shift();
-        const success = await performSeedPurchase(item.seedId, item.quantity);
+        let success = false;
+
+        // Handle both seeds and eggs based on item type
+        if (item.type === 'egg') {
+          success = await performEggPurchase(item.itemId, item.quantity);
+        } else {
+          // Default to seed for backward compatibility
+          success = await performSeedPurchase(item.itemId || item.seedId, item.quantity);
+        }
+
         if (success) {
           successCount++;
         } else {
@@ -12546,10 +12602,10 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       }
 
       if (successCount > 0) {
-        showNotificationToast(`✓ Auto-Compra: ${successCount} tipo(s) de sementes compradas com sucesso!`, 'success');
+        showNotificationToast(`✓ Auto-Compra: ${successCount} tipo(s) de itens comprados com sucesso!`, 'success');
         updateAutoBuyStatus('✓ Compra concluída!');
       } else {
-        showNotificationToast(`❌ Auto-Compra: Falha ao comprar sementes`, 'error');
+        showNotificationToast(`❌ Auto-Compra: Falha ao comprar itens`, 'error');
         updateAutoBuyStatus('✓ Auto-compra ativa - Aguardando restock...');
       }
 
@@ -12569,7 +12625,8 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       const settings = loadAutoBuySettings();
       productionLog('[AUTO-BUY] Current settings:', {
         enabled: settings.enabled,
-        selectedSeedsCount: Object.keys(settings.selectedSeeds || {}).length
+        selectedSeedsCount: Object.keys(settings.selectedSeeds || {}).length,
+        selectedEggsCount: Object.keys(settings.selectedEggs || {}).length
       });
 
       if (!settings.enabled) {
@@ -12577,22 +12634,32 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         return;
       }
 
-      productionLog('🔄 [AUTO-BUY] Shop restocked, checking selected seeds...');
+      productionLog('🔄 [AUTO-BUY] Shop restocked, checking selected items...');
 
       // Build purchase queue
       autoBuyQueue = [];
-      for (const [seedId, config] of Object.entries(settings.selectedSeeds)) {
+
+      // Add seeds to queue
+      for (const [seedId, config] of Object.entries(settings.selectedSeeds || {})) {
         if (config.enabled && config.quantity > 0) {
-          autoBuyQueue.push({ seedId, quantity: config.quantity });
-          productionLog(`[AUTO-BUY] Queued: ${seedId} x${config.quantity}`);
+          autoBuyQueue.push({ type: 'seed', itemId: seedId, quantity: config.quantity });
+          productionLog(`[AUTO-BUY] Queued seed: ${seedId} x${config.quantity}`);
+        }
+      }
+
+      // Add eggs to queue
+      for (const [eggId, config] of Object.entries(settings.selectedEggs || {})) {
+        if (config.enabled && config.quantity > 0) {
+          autoBuyQueue.push({ type: 'egg', itemId: eggId, quantity: config.quantity });
+          productionLog(`[AUTO-BUY] Queued egg: ${eggId} x${config.quantity}`);
         }
       }
 
       if (autoBuyQueue.length > 0) {
-        productionLog(`🛒 [AUTO-BUY] Queued ${autoBuyQueue.length} seed types for purchase`);
+        productionLog(`🛒 [AUTO-BUY] Queued ${autoBuyQueue.length} item types for purchase`);
         processPurchaseQueue();
       } else {
-        productionLog('[AUTO-BUY] No seeds selected for purchase');
+        productionLog('[AUTO-BUY] No items selected for purchase');
       }
     }
 
@@ -12617,18 +12684,27 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
 
       // Build purchase queue
       autoBuyQueue = [];
-      for (const [seedId, config] of Object.entries(settings.selectedSeeds)) {
+
+      // Add seeds to queue
+      for (const [seedId, config] of Object.entries(settings.selectedSeeds || {})) {
         if (config.enabled && config.quantity > 0) {
-          autoBuyQueue.push({ seedId, quantity: config.quantity });
+          autoBuyQueue.push({ type: 'seed', itemId: seedId, quantity: config.quantity });
+        }
+      }
+
+      // Add eggs to queue
+      for (const [eggId, config] of Object.entries(settings.selectedEggs || {})) {
+        if (config.enabled && config.quantity > 0) {
+          autoBuyQueue.push({ type: 'egg', itemId: eggId, quantity: config.quantity });
         }
       }
 
       if (autoBuyQueue.length === 0) {
-        showNotificationToast('⚠️ Nenhuma semente selecionada para compra', 'warning');
+        showNotificationToast('⚠️ Nenhum item selecionado para compra', 'warning');
         return;
       }
 
-      productionLog(`🛒 [AUTO-BUY] Manual purchase triggered for ${autoBuyQueue.length} seed types`);
+      productionLog(`🛒 [AUTO-BUY] Manual purchase triggered for ${autoBuyQueue.length} item types`);
       processPurchaseQueue();
     }
 
@@ -12677,6 +12753,13 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         </div>
       `;
 
+      // Seeds section header
+      html += `
+        <div class="mga-section">
+          <div class="mga-section-title" style="font-size: 16px; margin-bottom: 12px;">🌱 SEMENTES</div>
+        </div>
+      `;
+
       seedGroups.forEach(group => {
         html += `
           <div class="mga-section">
@@ -12704,6 +12787,32 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
 
         html += '</div></div>';
       });
+
+      // Eggs section
+      html += `
+        <div class="mga-section">
+          <div class="mga-section-title" style="font-size: 16px; margin-bottom: 12px;">🥚 OVOS</div>
+          <div class="mga-grid">
+      `;
+
+      AVAILABLE_EGGS.forEach(egg => {
+        const config = settings.selectedEggs[egg.id] || { enabled: false, quantity: DEFAULT_EGG_QUANTITY };
+        const checked = config.enabled ? 'checked' : '';
+
+        html += `
+          <div style="display: flex; align-items: center; gap: 8px; padding: 6px;">
+            <label class="mga-checkbox-group" style="flex: 1;">
+              <input type="checkbox" class="mga-checkbox autobuy-egg-checkbox" data-egg="${egg.id}" ${checked}>
+              <span class="mga-label" style="color: ${egg.color}">${egg.emoji} ${egg.name}</span>
+            </label>
+            <input type="number" class="autobuy-egg-quantity-input" data-egg="${egg.id}" 
+                   value="${config.quantity}" min="1" max="9999" 
+                   style="width: 70px; padding: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; color: white; text-align: center;">
+          </div>
+        `;
+      });
+
+      html += '</div></div>';
 
       return html;
     }
@@ -12776,6 +12885,42 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
           saveAutoBuySettings();
         });
       });
+
+      // Egg checkboxes
+      const eggCheckboxes = doc.querySelectorAll('.autobuy-egg-checkbox');
+      eggCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', e => {
+          const eggId = e.target.dataset.egg;
+          const settings = loadAutoBuySettings();
+
+          if (!settings.selectedEggs[eggId]) {
+            settings.selectedEggs[eggId] = { enabled: false, quantity: DEFAULT_EGG_QUANTITY };
+          }
+
+          settings.selectedEggs[eggId].enabled = e.target.checked;
+          saveAutoBuySettings();
+          productionLog(`[AUTO-BUY] ${eggId}:`, e.target.checked ? 'ATIVADO' : 'DESATIVADO');
+        });
+      });
+
+      // Egg quantity inputs
+      const eggQuantityInputs = doc.querySelectorAll('.autobuy-egg-quantity-input');
+      eggQuantityInputs.forEach(input => {
+        input.addEventListener('change', e => {
+          const eggId = e.target.dataset.egg;
+          const quantity = parseInt(e.target.value) || DEFAULT_EGG_QUANTITY;
+          const settings = loadAutoBuySettings();
+
+          if (!settings.selectedEggs[eggId]) {
+            settings.selectedEggs[eggId] = { enabled: false, quantity: DEFAULT_EGG_QUANTITY };
+          }
+
+          settings.selectedEggs[eggId].quantity = Math.max(1, Math.min(9999, quantity));
+          e.target.value = settings.selectedEggs[eggId].quantity;
+          saveAutoBuySettings();
+          productionLog(`[AUTO-BUY] ${eggId} quantidade:`, e.target.value);
+        });
+      });
     }
 
     // ==================== GLOBAL AUTO-BUY API ====================
@@ -12789,7 +12934,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
           return settings;
         } catch (e) {
           console.error('[AUTO-BUY-API] Error loading settings:', e);
-          return { enabled: false, selectedSeeds: {} };
+          return { enabled: false, selectedSeeds: {}, selectedEggs: {} };
         }
       },
 
@@ -12821,7 +12966,8 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
 
         productionLog('[AUTO-BUY-API] Restock trigger called', {
           enabled: settings.enabled,
-          selectedSeeds: settings.selectedSeeds
+          selectedSeeds: settings.selectedSeeds,
+          selectedEggs: settings.selectedEggs
         });
 
         // Verify auto-buy is enabled
@@ -12830,16 +12976,22 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
           return;
         }
 
-        // Verify seeds are selected
+        // Verify items are selected
         const selectedSeeds = Object.entries(settings.selectedSeeds || {})
           .filter(([_, config]) => config.enabled && config.quantity > 0);
 
-        if (selectedSeeds.length === 0) {
-          productionLog('[AUTO-BUY-API] No seeds selected, ignoring restock');
+        const selectedEggs = Object.entries(settings.selectedEggs || {})
+          .filter(([_, config]) => config.enabled && config.quantity > 0);
+
+        if (selectedSeeds.length === 0 && selectedEggs.length === 0) {
+          productionLog('[AUTO-BUY-API] No items selected, ignoring restock');
           return;
         }
 
-        productionLog('[AUTO-BUY-API] Executing auto-buy after restock...', selectedSeeds);
+        productionLog('[AUTO-BUY-API] Executing auto-buy after restock...', {
+          seeds: selectedSeeds,
+          eggs: selectedEggs
+        });
 
         // Execute the existing onShopRestock function
         onShopRestock();
@@ -12851,6 +13003,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
         return {
           enabled: settings.enabled,
           selectedSeedsCount: Object.keys(settings.selectedSeeds || {}).length,
+          selectedEggsCount: Object.keys(settings.selectedEggs || {}).length,
           processing: autoBuyProcessing,
           queueLength: autoBuyQueue.length
         };
