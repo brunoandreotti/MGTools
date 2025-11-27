@@ -12467,6 +12467,9 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
     let autoBuyProcessing = false;
     let autoBuyQueue = [];
 
+    // Default quantity for egg auto-buy
+    const DEFAULT_EGG_QUANTITY = 999;
+
     // Available eggs for auto-buy
     const AVAILABLE_EGGS = [
       { id: 'CommonEgg', name: 'Common Egg', emoji: '🥚', color: '#fff' },
@@ -12793,7 +12796,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       `;
 
       AVAILABLE_EGGS.forEach(egg => {
-        const config = settings.selectedEggs[egg.id] || { enabled: false, quantity: 999 };
+        const config = settings.selectedEggs[egg.id] || { enabled: false, quantity: DEFAULT_EGG_QUANTITY };
         const checked = config.enabled ? 'checked' : '';
 
         html += `
@@ -12891,7 +12894,7 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
           const settings = loadAutoBuySettings();
 
           if (!settings.selectedEggs[eggId]) {
-            settings.selectedEggs[eggId] = { enabled: false, quantity: 999 };
+            settings.selectedEggs[eggId] = { enabled: false, quantity: DEFAULT_EGG_QUANTITY };
           }
 
           settings.selectedEggs[eggId].enabled = e.target.checked;
@@ -12905,11 +12908,11 @@ console.log('[MGTOOLS-DEBUG] 4. Window type:', window === window.top ? 'TOP' : '
       eggQuantityInputs.forEach(input => {
         input.addEventListener('change', e => {
           const eggId = e.target.dataset.egg;
-          const quantity = parseInt(e.target.value) || 999;
+          const quantity = parseInt(e.target.value) || DEFAULT_EGG_QUANTITY;
           const settings = loadAutoBuySettings();
 
           if (!settings.selectedEggs[eggId]) {
-            settings.selectedEggs[eggId] = { enabled: false, quantity: 999 };
+            settings.selectedEggs[eggId] = { enabled: false, quantity: DEFAULT_EGG_QUANTITY };
           }
 
           settings.selectedEggs[eggId].quantity = Math.max(1, Math.min(9999, quantity));
